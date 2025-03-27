@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Level.Rooms;
 using UnityEngine;
 
 namespace Level.Generation
@@ -317,7 +318,7 @@ namespace Level.Generation
                     continue;
                 var exitCorridorDoorPrefab = possibleExitDoors[Random.Range(0, possibleExitDoors.Count)];
 
-                Vector3 corridorPosition = originDoor.transform.position - entryCorridorDoorPrefab.transform.position;
+                Vector3 corridorPosition = originDoor.transform.position - entryCorridorDoorPrefab.transform.position + originDoor.offset;
                 GameObject corridorInstance = Object.Instantiate(corridorPrefab, corridorPosition, Quaternion.identity);
                 var corridorInstanceComp = corridorInstance.GetComponent<Room>();
                 if (!corridorInstanceComp)
@@ -349,7 +350,6 @@ namespace Level.Generation
                     continue;
                 }
 
-                Vector3 corridorExitWorldPos = corridorExitDoor.transform.position;
                 Door.Direction requiredNewRoomDoorDir = CorridorHelper.OppositeDirection(corridorExitDoor.direction);
                 GameObject newRoomPrefab = CorridorHelper.FindRoomWithDoorDirection(roomPools, Room.RoomType.Exit, requiredNewRoomDoorDir);
                 if (!newRoomPrefab)
@@ -366,7 +366,7 @@ namespace Level.Generation
                     continue;
                 }
 
-                Vector3 newRoomPosition = corridorExitWorldPos - newRoomDoor.transform.position;
+                Vector3 newRoomPosition = corridorExitDoor.transform.position - newRoomDoor.transform.position + corridorExitDoor.offset;
                 Bounds newRoomBounds = new Bounds(
                     newRoomPosition + newRoomPrefabComp.bounds.center,
                     newRoomPrefabComp.bounds.size

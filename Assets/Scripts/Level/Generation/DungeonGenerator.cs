@@ -119,6 +119,9 @@ namespace Level.Generation
             if (!generated)
             {
                 // Fallback emergency generation.
+                RoomPlacer.PlaceInitialRoom(_roomPools, _placedRooms, _placedObjects, _collisionChecker, ref _remainingCounts);
+
+                // Fallback emergency generation.
                 RoomPlacer.GenerateDungeonEmergency(_roomPools, corridorPrefabs, ref _remainingCounts,
                     _placedObjects, _placedRooms, _collisionChecker, ref _exitPlaced);
             }
