@@ -1,147 +1,221 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
-using Level.Rooms;
+using Level.Generation.Composites;
+using Level.Generation.Corridors;
+using Level.Generation.Graph;
+using Level.Generation.Grammar;
+using Level.Generation.Layout;
+using Level.Generation.Runtime;
+using Level.Generation.Scoring;
+using Level.Generation.Support;
+using Level.Minimap;
 using Scripts;
 
 namespace Level.Generation
 {
     public class DungeonGenerator : MonoBehaviour
     {
-        private const int MaxAttempts = 10;
-        private const int MaxOnePlacementAttempts = 100;
-
-        public List<RoomTypeRequirements> roomRequirements = new()
-        {
-            new RoomTypeRequirements { type = Room.RoomType.Entry, minimumRequiredCount = 1, maximumRequiredCount = 1 },
-            new RoomTypeRequirements { type = Room.RoomType.Exit, minimumRequiredCount = 1, maximumRequiredCount = 1 },
-            new RoomTypeRequirements { type = Room.RoomType.Boss, minimumRequiredCount = 1, maximumRequiredCount = 1 },
-            new RoomTypeRequirements { type = Room.RoomType.Treasure, minimumRequiredCount = 2, maximumRequiredCount = 2 },
-            new RoomTypeRequirements { type = Room.RoomType.Fight, minimumRequiredCount = 5, maximumRequiredCount = 10 }
-        };
-
-        [Header("Corridor Settings")]
-        public List<GameObject> corridorPrefabs;
-
-        public bool lazyGeneration;
+        [Header("Config")]
+        public GenerationConfig config;
         
-        [SerializeField] [ConditionalHide(nameof(lazyGeneration))]
-        private float timeBetweenPlaceAttempts = 0.05f;
+        [Header("Player")]
+        public GameObject playerPrefab;
+        
+        [Header("Debug")]
+        public KeyCode regenerateKey = KeyCode.R;
+        public bool generateOnStart = true;
+        
+        private GameObject _currentLevelRoot;
+        private GameObject _currentPlayer;
+        private AssembledLevel _lastAssembled;
+        private MinimapController _minimap;
+        private PlayerMove _inputController;
 
-        // Internal state
-        private List<GameObject> _placedObjects = new();
-        private List<Room> _placedRooms = new();
-        private Room _bossRoom;
-        private CollisionChecker _collisionChecker;
-        private bool _exitPlaced;
-        private Dictionary<Room.RoomType, int> _remainingCounts;
-        private Dictionary<Room.RoomType, List<GameObject>> _roomPools;
-
-        private void Awake()
+        private void Start()
         {
-            _collisionChecker = new CollisionChecker();
-
-            // Use the RoomInitializer to set up room pools and counts.
-            RoomInitializer.Initialize(roomRequirements, out _roomPools, out _remainingCounts);
-
-            // Attempt to generate the dungeon.
-            StartCoroutine(Generate());
+            if (generateOnStart) Generate();
+        }
+        
+        private void Update()
+        {
+            if (Input.GetKeyDown(regenerateKey)) Regenerate();
         }
 
-        private IEnumerator Generate()
+        public void Generate()
         {
-            bool generated = false;
-            for (int attempt = 0; attempt < MaxAttempts; attempt++)
+            if (config == null)
             {
-                // Place the initial room.
-                RoomPlacer.PlaceInitialRoom(_roomPools, _placedRooms, _placedObjects, _collisionChecker, ref _remainingCounts);
+                Debug.LogError("GenerationConfig is not set");
+                return;
+            }
 
-                // Main loop for placing additional rooms.
-                int onePlacementAttemptCount = MaxOnePlacementAttempts;
-                List<Door> availableDoors = new List<Door>(_placedRooms[0].doors);
-                availableDoors = availableDoors.OrderBy(_ => Random.value).ToList();
-
-                while (availableDoors.Count > 0 && 
-                       RoomTypeHelper.CanPlaceMoreRooms(_remainingCounts) && 
-                       onePlacementAttemptCount-- > 0)
+            var segmentFootprints = new List<CorridorSegmentFootprint>();
+            if (config.corridorSegmentPrefabs != null)
+                foreach (var prefab in config.corridorSegmentPrefabs)
                 {
-                    if (lazyGeneration)
-                        yield return new WaitForSeconds(timeBetweenPlaceAttempts);
-                    int index = Random.Range(0, availableDoors.Count);
-                    Door originDoor = availableDoors[index];
+                    var fp = CorridorSegmentFootprint.FromPrefab(prefab);
+                    if (fp != null) segmentFootprints.Add(fp);
+                }
+            if (segmentFootprints.Count == 0)
+            {
+                Debug.LogError("No corridor segment prefabs configured");
+                return;
+            }
 
-                    if (originDoor.isConnected)
-                    {
-                        availableDoors.RemoveAt(index);
-                        continue;
-                    }
+            int maxRetries = Mathf.Max(1, config.maxRetries);
+            var rng = new System.Random();
 
-                    if (RoomTypeHelper.GetNextRoomType(_remainingCounts) == Room.RoomType.Null)
-                        break;
-
-                    // Try to attach a corridor and a new room.
-                    if (RoomPlacer.TryPlaceCorridorAndRoom(originDoor, corridorPrefabs, _roomPools, ref _remainingCounts,
-                        _placedObjects, _placedRooms, _collisionChecker, out Room newRoom))
-                    {
-                        Debug.Log($"Placing room {newRoom.name}");
-                        originDoor.isConnected = true;
-                        originDoor.gameObject.SetActive(false);
-                        // Add new doors.
-                        foreach (var door in newRoom.doors)
-                        {
-                            if (!door.isConnected)
-                                availableDoors.Add(door);
-                        }
-                        // If a boss room is placed, store it and try to place the exit.
-                        if (newRoom.type == Room.RoomType.Boss)
-                        {
-                            _bossRoom = newRoom;
-                            RoomPlacer.PlaceExitRoom(_bossRoom, corridorPrefabs, _roomPools, ref _remainingCounts,
-                                _placedObjects, _placedRooms, _collisionChecker, ref _exitPlaced);
-                        }
-                        availableDoors.RemoveAt(index);
-                        onePlacementAttemptCount = MaxOnePlacementAttempts;
-                    }
+            for (int attempt = 0; attempt < maxRetries; attempt++)
+            {
+                int seedValue = config.seed >= 0 ? config.seed + attempt : rng.Next();
+                var assembled = TryGenerateOnce(seedValue, segmentFootprints, out string failureStage);
+                if (assembled == null)
+                {
+                    Debug.LogWarning($"Attempt {attempt + 1}/{maxRetries} failed at {failureStage} (seed {seedValue})");
+                    continue;
                 }
 
-                if (RoomTypeHelper.IsGenerationComplete(_remainingCounts))
+                _lastAssembled = assembled;
+
+                var instantiator = new LevelInstantiator();
+                _currentLevelRoot = instantiator.Instantiate(assembled, transform);
+
+                SpawnPlayer(assembled);
+                RescanPathfinding();
+                SetupMinimap(assembled, instantiator);
+
+                Debug.Log($"Level generated with seed {seedValue} on attempt {attempt + 1}. Rooms: {assembled.rooms.Count}, corridors: {assembled.corridors.Count}");
+                return;
+            }
+
+            Debug.LogError($"Failed to generate level after {maxRetries} attempts");
+        }
+
+        private AssembledLevel TryGenerateOnce(int seedValue, List<CorridorSegmentFootprint> segmentFootprints, out string failureStage)
+        {
+            failureStage = "";
+            var seed = new SeedManager(seedValue);
+
+            var pools = new RoomPools();
+            var budget = new Budget();
+            foreach (var req in config.roomRequirements)
+            {
+                budget.SetInitial(req.type, req.maximumRequiredCount);
+                if (req.prefabs != null)
+                    foreach (var prefab in req.prefabs)
+                        pools.AddPrefab(prefab);
+            }
+
+            var grammar = new RecipeGrammar();
+            grammar.RegisterFromConfig(config.recipes);
+
+            var builder = new MacroGraphBuilder();
+            var graph = builder.Build(config.roomRequirements, grammar, seed);
+            if (graph == null) { failureStage = "MacroGraphBuilder"; return null; }
+
+            var zoneInjector = new ZoneInjector
+            {
+                secretRoomChance = config.secretRoomChance,
+                restAreaChance = config.restAreaChance
+            };
+            zoneInjector.Inject(graph, grammar, seed);
+
+            var corridorInjector = new CorridorInjector
+            {
+                maxLoopEdges = config.maxLoopEdges,
+                maxShortcutEdges = config.maxShortcutEdges,
+                maxDeepShortcutEdges = config.maxDeepShortcutEdges
+            };
+            corridorInjector.Inject(graph, grammar, seed);
+
+            var expander = new ZoneExpander();
+            if (!expander.Expand(graph, grammar, budget, pools, seed)) { failureStage = "ZoneExpander"; return null; }
+
+            var assembler = new MacroAssembler();
+            var assembled = assembler.Assemble(graph, segmentFootprints, seed);
+            if (assembled == null) { failureStage = "MacroAssembler"; return null; }
+
+            return assembled;
+        }
+
+        public void Regenerate()
+        {
+            if (_currentLevelRoot != null)
+            {
+                Destroy(_currentLevelRoot);
+                _currentLevelRoot = null;
+            }
+            if (_currentPlayer != null)
+            {
+                Destroy(_currentPlayer);
+                _currentPlayer = null;
+            }
+            if (_minimap != null)
+            {
+                Destroy(_minimap.gameObject);
+                _minimap = null;
+            }
+
+            StartCoroutine(RegenerateAfterFrame());
+        }
+
+        private void SetupMinimap(AssembledLevel level, LevelInstantiator instantiator)
+        {
+            var minimapGo = new GameObject("Minimap");
+            _minimap = minimapGo.AddComponent<MinimapController>();
+            _minimap.Initialize(level, _currentPlayer != null ? _currentPlayer.transform : null);
+            instantiator.OnRoomEntered += _minimap.MarkZoneExplored;
+        }
+        
+        private IEnumerator RegenerateAfterFrame()
+        {
+            yield return null;
+            Generate();
+        }
+        
+        private void SpawnPlayer(AssembledLevel level)
+        {
+            if (playerPrefab == null) return;
+            
+            PlacedRoom entryRoom = null;
+            foreach (var room in level.rooms)
+            {
+                if (room.sourceNode.type == Room.RoomType.Entry)
                 {
-                    generated = true;
+                    entryRoom = room;
                     break;
                 }
-                Debug.LogWarning("Failed to place rooms, resetting dungeon.");
-                RemoveAll();
-                // Reinitialize for next attempt.
-                RoomInitializer.Initialize(roomRequirements, out _roomPools, out _remainingCounts);
             }
-
-            if (!generated)
+            
+            if (entryRoom == null)
             {
-                // Fallback emergency generation.
-                RoomPlacer.PlaceInitialRoom(_roomPools, _placedRooms, _placedObjects, _collisionChecker, ref _remainingCounts);
-
-                // Fallback emergency generation.
-                RoomPlacer.GenerateDungeonEmergency(_roomPools, corridorPrefabs, ref _remainingCounts,
-                    _placedObjects, _placedRooms, _collisionChecker, ref _exitPlaced);
+                Debug.LogWarning("No Entry room found for player spawn");
+                return;
             }
-
-            yield return null;
+            
+            Vector3 spawnPos = new Vector3(
+                entryRoom.worldPosition.x + entryRoom.footprint.size.x * 0.5f,
+                entryRoom.worldPosition.y + entryRoom.footprint.size.y * 0.5f,
+                0
+            );
+            
+            _currentPlayer = Object.Instantiate(playerPrefab, spawnPos, Quaternion.identity);
         }
-
-        private void RemoveAll()
+        
+        private void RescanPathfinding()
         {
-            foreach (var obj in _placedObjects.ToArray())
-            {
-                if (obj)
-                    Destroy(obj);
-            }
-            _placedObjects.Clear();
-            _placedRooms.Clear();
-            _remainingCounts.Clear();
-            _exitPlaced = false;
-            _bossRoom = null;
-            _collisionChecker.Clear();
+            var astarType = System.Type.GetType("Pathfinding.AstarPath, AstarPathfindingProject");
+            if (astarType == null) return;
+            
+            var activeProperty = astarType.GetProperty("active", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+            if (activeProperty == null) return;
+            
+            var activeInstance = activeProperty.GetValue(null);
+            if (activeInstance == null) return;
+            
+            var scanMethod = astarType.GetMethod("Scan", new System.Type[0]);
+            scanMethod?.Invoke(activeInstance, null);
         }
     }
 }

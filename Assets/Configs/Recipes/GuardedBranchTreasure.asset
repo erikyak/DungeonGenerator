@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1d2b4adb7743400b9c402682203616cf, type: 3}
+  m_Name: GuardedBranchTreasure
+  m_EditorClassIdentifier: Assembly-CSharp::Level.Generation.Grammar.CompositeRecipe
+  targetZoneType: 3
+  minInterfaces: 2
+  maxInterfaces: 2
+  selectionWeight: 1
+  structureType: 0
+  onlyOnCriticalPath: 0
+  onlyOffCriticalPath: 0
+  nodes:
+  - id: 0
+    roomType: 2
+    minDoors: 2
+    prefabTag: 
+    canBeInterface: 0
+    minRepeat: 1
+    maxRepeat: 1
+  - id: 1
+    roomType: 1
+    minDoors: 2
+    prefabTag: 
+    canBeInterface: 1
+    minRepeat: 1
+    maxRepeat: 1
+  - id: 2
+    roomType: 1
+    minDoors: 2
+    prefabTag: 
+    canBeInterface: 1
+    minRepeat: 1
+    maxRepeat: 1
+  edges:
+  - fromId: 0
+    toId: 1
+  - fromId: 0
+    toId: 2

@@ -1,0 +1,77 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9df90c1edd64d5aa3592ef619a3e137, type: 3}
+  m_Name: BCGenerationConfig
+  m_EditorClassIdentifier: Assembly-CSharp::Level.Generation.Support.GenerationConfig
+  roomRequirements:
+  - type: 0
+    minimumRequiredCount: 1
+    maximumRequiredCount: 1
+    prefabs:
+    - {fileID: 4976119170101497654, guid: acfedabe6c2a1485c94e25ea26b687d3, type: 3}
+    - {fileID: 4976119170101497654, guid: 6bcd52a299a444547b75f4a12cbbe3e9, type: 3}
+    - {fileID: 4976119170101497654, guid: a01bc9ee302c34e43945ab2c48e02e2f, type: 3}
+  - type: 1
+    minimumRequiredCount: 8
+    maximumRequiredCount: 13
+    prefabs:
+    - {fileID: 6887263445257250342, guid: d9c6b626107124818920a904ba26740b, type: 3}
+    - {fileID: 6887263445257250342, guid: 02d2385bc9b3f4459bd073674369cf63, type: 3}
+    - {fileID: 6887263445257250342, guid: 3c0bb424ad17648b196e5dc84f44fcd5, type: 3}
+  - type: 2
+    minimumRequiredCount: 2
+    maximumRequiredCount: 2
+    prefabs:
+    - {fileID: 4976119170101497654, guid: bcfa03da19f854982a7b82cf98a00ace, type: 3}
+    - {fileID: 4976119170101497654, guid: 2f2c892b6cc5446c2b3695e079b4217d, type: 3}
+    - {fileID: 4976119170101497654, guid: 7a2eb9eba1d544cf386c76e7c605c431, type: 3}
+    - {fileID: 4976119170101497654, guid: 010c182f12c7f41298b2fd96b2bccb3f, type: 3}
+  - type: 3
+    minimumRequiredCount: 1
+    maximumRequiredCount: 1
+    prefabs:
+    - {fileID: 4976119170101497654, guid: 9ddc741b185604da8bbd6cf3e4d056dd, type: 3}
+    - {fileID: 4976119170101497654, guid: 422af3e3fd07d4884b67f6c42faf661f, type: 3}
+  - type: 4
+    minimumRequiredCount: 1
+    maximumRequiredCount: 1
+    prefabs:
+    - {fileID: 4976119170101497654, guid: f8c620edf81184122baf8c08fb5c883d, type: 3}
+    - {fileID: 4976119170101497654, guid: 7b563713433ff4c28817a9754277d07d, type: 3}
+    - {fileID: 4976119170101497654, guid: 7689489f2b5ad46cebc441462e6350a5, type: 3}
+    - {fileID: 4976119170101497654, guid: 94b2ebbc304e14378b6659bcf2a09304, type: 3}
+  recipes:
+  - {fileID: 11400000, guid: dc08e9f3eaa49d34ca829e051ae6d597, type: 2}
+  - {fileID: 11400000, guid: 39ec2c30799ffb4488ae557a387e527f, type: 2}
+  - {fileID: 11400000, guid: 7af7604cb8c50444dac754a1f891ce1e, type: 2}
+  - {fileID: 11400000, guid: ec5b858e687c62843b3ce11cf1f1222e, type: 2}
+  - {fileID: 11400000, guid: d6e92f8dc14af2048b12240528e40432, type: 2}
+  - {fileID: 11400000, guid: 89e7905ce5ecbaa418f2fdb22f040a40, type: 2}
+  corridorSegmentPrefabs:
+  - {fileID: 1219847445548157181, guid: 82dd21443a7cd7b478c5f5ea5a63994f, type: 3}
+  - {fileID: 1219847445548157181, guid: f0bf3a9907266dd43aef19a935bcc10e, type: 3}
+  - {fileID: 1219847445548157181, guid: 1b11c7577a7707046978a5875f295bfe, type: 3}
+  - {fileID: 1219847445548157181, guid: ae94b255a7bac824a97b208be69fbf81, type: 3}
+  - {fileID: 1219847445548157181, guid: 89dffd8f7dafdc84cb25804b6efd40de, type: 3}
+  - {fileID: 1219847445548157181, guid: 3efc03f97b9691942bdf922c472f9800, type: 3}
+  - {fileID: 1219847445548157181, guid: 7343fcaef458b6445aab5cee543faf22, type: 3}
+  - {fileID: 1219847445548157181, guid: 7c94dbb00ae8dca42a3960c02d0d4394, type: 3}
+  - {fileID: 1219847445548157181, guid: c9e7aa5d45210c9469da43ec1eb2d51a, type: 3}
+  - {fileID: 1219847445548157181, guid: 287ef9345c6dd03409610f91b82c773f, type: 3}
+  seed: -1
+  multiAttemptCount: 1
+  maxRetries: 10
+  secretRoomChance: 0.05
+  restAreaChance: 0.15
+  maxLoopEdges: 1
+  maxShortcutEdges: 1
+  maxDeepShortcutEdges: 1
