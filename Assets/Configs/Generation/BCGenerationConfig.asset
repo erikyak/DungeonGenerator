@@ -69,7 +69,7 @@ MonoBehaviour:
   - {fileID: 1219847445548157181, guid: 287ef9345c6dd03409610f91b82c773f, type: 3}
   seed: -1
   multiAttemptCount: 1
-  maxRetries: 10
+  maxRetries: 30
   secretRoomChance: 0.05
   restAreaChance: 0.15
   maxLoopEdges: 1
