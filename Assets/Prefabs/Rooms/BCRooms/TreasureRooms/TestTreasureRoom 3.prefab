@@ -242,7 +242,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!1 &3793275353078440570
 GameObject:
@@ -3204,3 +3204,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 887ba15d37d1467da4ec4abb42fea29c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  dummyPrefab: {fileID: 489444913107808748, guid: 362ad3eedb34e481d8961b42278c0ea4, type: 3}
